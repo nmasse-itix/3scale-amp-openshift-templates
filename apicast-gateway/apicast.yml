@@ -54,6 +54,8 @@ objects:
             value: "${MANAGEMENT_API}"
           - name: OPENSSL_VERIFY
             value: "${OPENSSL_VERIFY}"
+          - name: BACKEND_ENDPOINT_OVERRIDE
+            value: http://localhost:9091
           image: 3scale-amp21/apicast-gateway:1.4-2
           imagePullPolicy: Always
           name: "${APICAST_NAME}"
@@ -75,6 +77,31 @@ objects:
             protocol: TCP
           - name: management
             containerPort: 8090
+            protocol: TCP
+        - image: "${SIDECAR_PROXY_IMAGE}"
+          imagePullPolicy: Always
+          name: "proxy"
+          env:
+          - name: THREESCALE_PORTAL_ENDPOINT
+            value: ${THREESCALE_PORTAL_ENDPOINT}
+          - name: BACKEND_ENDPOINT_OVERRIDE
+            value: ${BACKEND_ENDPOINT_OVERRIDE}
+          livenessProbe:
+            tcpSocket:
+              port: 9090
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+          readinessProbe:
+            tcpSocket:
+              port: 9090
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          ports:
+          - name: portal
+            containerPort: 9090
+            protocol: TCP
+          - name: backend
+            containerPort: 9091
             protocol: TCP
     triggers:
     - type: ConfigChange
@@ -155,3 +182,12 @@ parameters:
   description: "Turn on/off the OpenSSL peer verification. Can be set to true/false."
   required: true
   value: "false"
+- name: SIDECAR_PROXY_IMAGE
+  description: "The sidecar proxy image to use"
+  value: "docker.io/nmasse/apicast-sidecar-proxy:latest"
+- name: BACKEND_ENDPOINT_OVERRIDE
+  description: "URI that overrides backend endpoint from the configuration. Useful when deploying outside OpenShift deployed AMP."
+  value: "https://su1.3scale.net"
+- name: THREESCALE_PORTAL_ENDPOINT
+  description: "The URL of your 3scale admin portal."
+  value: "https://su1.3scale.net"
