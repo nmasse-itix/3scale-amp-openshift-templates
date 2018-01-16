@@ -9,6 +9,13 @@ metadata:
 objects:
 
 - apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ${APICAST_NAME}-access-token
+  stringData:
+    adminPortalURL: http://${ACCESS_TOKEN}@127.0.0.1:9090
+
+- apiVersion: v1
   kind: DeploymentConfig
   metadata:
     name: "${APICAST_NAME}"
@@ -28,8 +35,8 @@ objects:
           - name: THREESCALE_PORTAL_ENDPOINT
             valueFrom:
               secretKeyRef:
-                name: "${CONFIGURATION_URL_SECRET}"
-                key: password
+                name: "${APICAST_NAME}-access-token"
+                key: adminPortalURL
           - name: THREESCALE_CONFIG_FILE
             value: "${CONFIGURATION_FILE_PATH}"
           - name: THREESCALE_DEPLOYMENT_ENV
@@ -55,7 +62,7 @@ objects:
           - name: OPENSSL_VERIFY
             value: "${OPENSSL_VERIFY}"
           - name: BACKEND_ENDPOINT_OVERRIDE
-            value: http://localhost:9091
+            value: http://127.0.0.1:9091
           image: 3scale-amp21/apicast-gateway:1.4-2
           imagePullPolicy: Always
           name: "${APICAST_NAME}"
@@ -128,16 +135,15 @@ parameters:
   description: "AMP release tag."
   value: 2.1.0-CR2-redhat-1
   required: true
-- description: "Name of the secret containing the THREESCALE_PORTAL_ENDPOINT with the access-token or provider key"
-  value: apicast-configuration-url-secret
-  name: CONFIGURATION_URL_SECRET
+- description: "The 3scale Access Token that has read access on the Account Management API"
+  name: ACCESS_TOKEN
   required: true
 - description: "Path to saved JSON file with configuration for the gateway. Has to be injected to the docker image as read only volume."
   value:
   name: CONFIGURATION_FILE_PATH
   required: false
-- description: "Deployment environment. Can be sandbox or production."
-  value: production
+- description: "Deployment environment. Can be staging or production."
+  value: staging
   name: DEPLOYMENT_ENVIRONMENT
   required: true
 - description: "Name for the 3scale API Gateway"
@@ -154,7 +160,7 @@ parameters:
   required: false
 - name: CONFIGURATION_LOADER
   description: "When to load configuration. If on gateway start or incoming request. Allowed values are: lazy, boot."
-  value: boot
+  value: lazy
   required: false
 - description: "Log level. One of the following: debug, info, notice, warn, error, crit, alert, or emerg."
   name: LOG_LEVEL
@@ -169,7 +175,7 @@ parameters:
   required: false
 - name: CONFIGURATION_CACHE
   description: "For how long to cache the downloaded configuration in seconds. Can be left empty, 0 or greater than 60."
-  value: ""
+  value: "0"
   required: false
 - description: "Redis URL. Required for OAuth2 integration. ex: redis://PASSWORD@127.0.0.1:6379/0"
   name: REDIS_URL
@@ -189,5 +195,5 @@ parameters:
   description: "URI that overrides backend endpoint from the configuration. Useful when deploying outside OpenShift deployed AMP."
   value: "https://su1.3scale.net"
 - name: THREESCALE_PORTAL_ENDPOINT
-  description: "The URL of your 3scale admin portal."
-  value: "https://su1.3scale.net"
+  description: "The URL of your 3scale admin portal (https://<TENANT>-admin.3scale.net)."
+  required: true
